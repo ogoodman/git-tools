@@ -250,7 +250,7 @@ def extracttimestamp(cmd):
 def getlog(commands, branch, repo_id):
     log = []
 
-    ref_names = ['refs/heads/' + branch, 'refs/heads/origin/' + branch]
+    ref_names = ['refs/heads/' + branch, 'refs/heads/origin/' + branch, 'refs/remotes/origin/' + branch]
 
     # Walk backwards.
     parent_mark = ''
