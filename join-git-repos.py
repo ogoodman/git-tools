@@ -44,18 +44,24 @@ def getrepospec(spec):
     else:
         branch = 'master'
 
+    subdir = True
+
     # Extract the name.
     sep = spec.find(',')
     if sep >= 0:
         name = spec[(sep + 1):]
         spec = spec[:sep]
+        if name == '':
+            # Use <path>,[:<branch>] to suppress move
+            name = os.path.basename(os.path.abspath(spec))
+            subdir = False
     else:
         name = os.path.basename(os.path.abspath(spec))
 
     # Extract the path.
     path = spec
 
-    return { 'path': path, 'name': name, 'branch': branch }
+    return { 'path': path, 'name': name, 'branch': branch, 'subdir': subdir }
 
 def extractline(exp_str, pos):
     eol_pos = exp_str.find('\n', pos)
@@ -444,14 +450,10 @@ parser = argparse.ArgumentParser(
            '                 (default: last part of the path)\n' +
            '    mainbranch - The main branch of the repository.\n' +
            '                 (default: master)\n'))
-parser.add_argument('-n', '--no-subdirs', action='store_true', help='do not create subdirectories')
 parser.add_argument('-o', '--output', metavar='OUTPUT', required='True', help='output directory for the stiched Git repo')
 parser.add_argument('main', metavar='MAIN', help='main repository specification')
 parser.add_argument('secondary', metavar='SECONDARY', nargs='+', help='secondary repository specification')
 args = parser.parse_args()
-
-# Should we append subdirs?
-move_to_subdirs = not args.no_subdirs
 
 # TODO(m): Support more than one repo with submodules (requires merging .gitmodules from several
 # repos, over time, ...).
@@ -461,7 +463,7 @@ already_have_submodules = False
 main_spec = getrepospec(args.main)
 print 'Exporting the main repository (' + main_spec['name'] + ')...'
 main_commands = exportrepo(main_spec['path'])
-if move_to_subdirs:
+if main_spec['subdir']:
     found_submodules = movetosubdir(main_commands, main_spec['name'])
     if found_submodules:
         assert(not already_have_submodules)
@@ -473,7 +475,7 @@ for secondary in args.secondary:
     secondary_spec = getrepospec(secondary)
     print '\nExporting ' + secondary_spec['name'] + '...'
     secondary_commands = exportrepo(secondary_spec['path'])
-    if move_to_subdirs:
+    if secondary_spec['subdir']:
         found_submodules = movetosubdir(secondary_commands, secondary_spec['name'])
         if found_submodules:
             assert(not already_have_submodules)
